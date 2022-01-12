@@ -18,33 +18,28 @@ output:
 ---
 
 
-## Reading data frames from files using code
+# Reading data frames from files using code
 
-However, rather than use the menu, it's much better to use actual code, as this will automate the process. Let's import a dataset on World Happiness Report (2017), by country. The files are [WHR_2017.xlsx](WHR_2017.xlsx),  and [WHR_2017.csv](WHR_2017.csv). Alternatively you can actually download the data set straight from the URL (below)
+The main data set we are looking at is the World Happiness Report (2017 & 2019), by country. The files are [WHR_2019.xlsx](WHR_2019.xlsx), [WHR_2017.xlsx](WHR_2017.xlsx), [WHR_2019.csv](WHR_2019.csv), [WHR_2017.csv](WHR_2017.csv).
+
+The "anthems" dataset is [here](anthems.csv)
 
 
-```{r, message = FALSE}
+```{r Read in data, message = FALSE}
 
 library(tidyverse)
 
-df <- readxl::read_excel("WHR_2017.xlsx") # Read an excel file
+df.2017 <- readxl::read_excel("WHR_2017.xlsx") # Read an excel file
 
-df <- read_csv("WHR_2017.csv") # Read from a .csv file
+df.2017 <- read_csv("WHR_2017.csv") # Read from a .csv file
 
-#Or to download straight from the URL!!
+df.2019 <- readxl::read_excel("WHR_2019.xlsx") # Read an excel file
 
-df <- read_csv("https://verbingnouns.github.io/AdventuresInR/docs/WHR_2017.csv")
+df.2019 <- read_csv("WHR_2019.csv") # Read from a .csv file
 
 ```
 
-
-
-Possibly the best data format to work in is the .csv data format (Comma-Separated Value). This is good because it is readable in Excel, small, simple, and not easily-corrupted.
-
-To read .csv files we use the `read.csv()` function from base R, or `read_csv()` from the tidyverse (I would go with the latter as it also shows you a list of the variable types)
-
-
-# Subsetting a data set using (a) base R and (d) dplyr
+# Recap on piping
 
 ## Subsetting with base R
 
@@ -57,40 +52,43 @@ Armed with this knowledge, your task is to subset the data frame so that it only
 If you're stuck have a look at the answer below. 
 
 ```{r Subsetting the hard way}
-df.Africa <- df[which(df$region == "Africa"), ]
+df.Africa <- df.2019[which(df.2019$region == "Africa"), ]
 ```
 
 ## Piping
 
 Okay, the above code is pretty horrible to look at, so we're going to explore an alternative using the package `dplyr` which is from the `tidyverse`. But before we can use `dplyr` we have to learn how to 'pipe'.
 
-![](images/MagrittePipe.jpg)
+![](MagrittePipe.jpg)
 
 Pipes are written in R as `%>%` (note you must use a percentage sign before and after the pipe). To demonstrate what pipes do, I have a look at the following pseudocode.
 
-![](images/piping.png)
+![](piping.png)
 
-All pipes do is enable us to 'pass' a data frame (or another object) to a new function without having to keep on specifying the data frame. In addition, we can *chain* pipes together indefinitely.
+All pipes do is enable us to 'pass' a data frame (or another object) to a new function without having to keep on specifying the data frame. In addition, we can *chain* pipes together indefinitely. Finally we can `try before we buy`, i.e. we can test the pipe wihtout creating a new data frame.
 
 Here's how we would subset the data frame using piping:
 
-```{r}
+```{r Subsetting using tidyverse}
 
-df.Africa <- filter(df, region == "Africa") # This is the version without piping
+df.2017.Africa <- filter(df.2017, region == "Africa") # This is the version without piping
 
-df %>% filter(region == "Africa") -> df.Africa # This is the version with piping. It looks longer, but we can chain multiple functions together!
+df.2017 %>%
+  filter(region == "Africa") -> df.2017.Africa
+
+# This is the version with piping. It looks longer, but we can chain multiple functions together!
 ```
 
 Note that to create a new data frame, we need a solid arrow at the end. If we don't include that solid arrow, the results are shown in the console, but no new data frame is created. This is an incredibly useful feature of pipes. You can `try before you buy`!
 
 And here is an example where we *chain* a series of pipes together:
 
-```{r}
+```{r piping example}
 
-df %>% 
+df.2017 %>% 
   group_by(region) %>%
   summarise(mean.happiness = mean(happiness_score)) ->
-  df.mean.happiness.by.region
+  df.2017.mean.happiness.by.region
 
 ```
 
@@ -105,25 +103,41 @@ Piping is a key technique in R and once you've learnt it you will write much mor
 
 As well as using pipes to create data frame, you can also insert pipes into both analyses and figures! Here are some examples
 
-```{r}
+```{r ANOVA and `tidy` command}
 
 # An ANOVA without a pipe. NB we are using the base function "aov". If you would like to conduct SPSS-style ANOVAs, the best package is called "afex".
 
-mod <- aov(happiness_rank ~ region, data = df)
+mod <- aov(happiness_rank ~ region, data = df.2017)
 
 pacman::p_load(broom) # To load the "tidy" function.
 
 tidy(mod)
+```
+
+```{r ANOVA with piping and `tidy` command}
 
 # Here we use a pipe inside the analysis
 mod <- aov(happiness_rank ~ region, # NB note we can break the line after a comma
-           data = df %>% filter(region == "Africa" | region == "South America"))
+           data = df.2017 %>% filter(region == "Africa" | region == "South America"))
 
 tidy(mod)
 
+```
 
-g <- ggplot(aes(x = gdp_per_capita, y = happiness_score, colour = region), # NB note we can break the line after a comma
-            data = df %>% filter(region == "Africa" | region == "South America"))
+```{r Plot GDP per capita against happiness for Europe, South America, and South East Asia (2019 data)}
+
+df.2017 %>% 
+  select(country, region) ->
+  df.country.region
+
+df.2019 %>%
+  merge(df.country.region, by.x = "Country or region", by.y = "country") ->
+  df.2019
+
+g <- ggplot(aes(x = `GDP per capita`, y = Score, colour = region), # NB note we can break the line after a comma
+            data = df.2019  %>% 
+                   filter(region == "Europe" | region == "South America" | region == "South East Asia")
+            )
 g <- g + geom_point()
 g <- g + geom_smooth(method = "lm")
 g
@@ -149,29 +163,6 @@ for(i in 1:10){
 ```
 
 
-To demonstrate a loop we're going to look at the WHR data set. We're going to ask the question 'for different regions of the world, what is the relationship between GDP per capita nd happiness?
-
-Here's how we would do it
-
-```{r looping through countries}
-
-# This code drops regions where number of observations are less than 3 (we can't do correlations if there are less than 3 observations)
-df %>%
-  group_by(region) %>%
-  summarise(num = n()) %>%
-  filter(num > 3) ->
-  df.region
-
-# Here is the code with the loop
-for (i in 1:length(df.region$region)){ # We loop through the list
-  df %>% filter(region == df.region$region[i]) -> temp.df # we subset the data according to the region. This contains a temporary dataset "temp.df"
-  model <- cor.test(temp.df$gdp_per_capita, temp.df$happiness_score) # We do the analysis
-  print(paste("Region: ", df.region$region[i])) # We print the results
-  print(model)
-}
-
-```
-
 ## EX5: Loops
 
 The code below creates a sequence ranging from 0 to 30 going up in steps of 0.25. Try to achieve the same result using a loop
@@ -181,150 +172,87 @@ seq(0,30,2.5)
 ```
 
 
-## If-then statements
+To demonstrate a loop we're going to look at the WHR data set. We're going to ask the question 'for different regions of the world, what is the relationship between GDP per capita nd happiness?
 
-To demonstrate if-then statements, we are going to create a new variable which shows if the happiness index is above the mean
+Here's how we would do it
 
-```{r}
-df$happiness_above_mean <- 0 # Set variable to 0
-mean_happiness <- mean(df$happiness_score) # Calculate mean mpg
-for (i in 1:nrow(df)){
-  if(df$happiness_score[i] > mean_happiness){df$happiness_above_mean[i] <- 1}
+```{r looping through regions and exploring correlation between GDP and happiness}
+
+# This code drops regions where number of observations are less than 3 (we can't do correlations if there are less than 3 observations)
+
+df.2019 %>% 
+  group_by(region) %>% 
+  count() %>% 
+  filter(n > 3) ->
+  region_list
+
+# Here is the code with the loop
+for (i in 1:nrow(region_list)){
+  
+ model <- cor.test(~ Score + `GDP per capita`,
+                   data = df.2019 %>% 
+                          filter(region == region_list$region[i])) 
+ print(paste("Region: ", region_list$region[i])) # We print the results
+ print(model)
 }
-```
-
-And here is the same process using `dplyr`, which avoids the loop and the if-then statement.
-
-```{r}
-
-df %>%
-  transmute(happiness_above_mean = as.numeric(happiness_score > mean(happiness_score))) ->
-  df
-```
-
-Note loops and if-then statements are quite verbose, and there is almost always a neater and much shorter alternatives. However, I think they are useful procedures for the relative beginner.
-
-Here is a much easier way to create the same variable
-
-```{r, message = FALSE}
-
-df <- read_csv("WHR_2017.csv")
-
-df$happiness_above_mean <- as.numeric(df$happiness_score > mean(df$happiness_score))
-```
-
-So how does this work? The statement in brackets evaluates to TRUE / FALSE. We then turn this into a number using `as.numeric`. TRUE evaluates to 1, while FALSE evaluates to 0.
-
-It can be quite useful to chain statements. For example, if we wish to identify countries where both the happiness score and life expectancy are above the mean, we could do this....
-
-```{r}
-df$happiness_and_LE_above_mean <- as.numeric((df$happiness_score > mean(df$happiness_score)) & (df$life_expectancy > mean(df$life_expectancy)))
-```
-
-## EX6: Creating variables
-
-Try to identify countries where both the GDP per capita and trust in the government are above the mean.
-
-# Stored results
-
-Whenever you run an analysis in R and save that to an object, the object has an internal structure. To demonstrate this, let's do a simple regression using the mtcars dataset:
-
-```{r, message = FALSE}
-
-df <- read.csv("WHR_2017.csv")
-
-head(df)
 
 ```
 
-Let's draw a plot looking at the relationship between GDP per capita and Happiness Score. We're not going to focus on the code, which will be covered in the next session.
 
-```{r}
-g <- ggplot(aes(x = df$gdp_per_capita, y = df$happiness_score), data = df)
+```{r as above, in purrr}
+
+pacman::p_load(purrr)
+
+df.2019 %>%
+  split(.$region) %>% # from base R
+  map(~ lm(Score ~ `GDP per capita`, data = .)) %>%
+  map(summary) %>%
+  map_dbl("r.squared")
+
+```
+
+# EXERCISE
+
+(1) Which countries experienced the greatest increases / decreases in happiness?
+(2) Do countries whose national anthems mention the words "happy" / "happiness" have higher levels of happiness?
+
+```{r increases and decreases}
+
+
+g <- ggplot(data = df.2017 %>% 
+                   merge(df.2019, by.x = "country", by.y = "Country or region") %>% 
+                   mutate(difference = happiness_score - Score) %>% 
+                   arrange(desc(difference)) %>% 
+                   mutate(rank = row_number())
+            )
+
+g <- g + aes(x = rank, y = difference, label = country, colour = region.x)
 g <- g + geom_point()
-g <- g + geom_smooth()
+g <- g + geom_text(angle = 45, nudge_x = 0.5, hjust =0, vjust = 0, size = 2)
 g
-```
-
-Now let's run a regression
-
-```{r}
-
-mod <- lm(happiness_score ~ gdp_per_capita, data = df) # mod = "model"
-
-pacman::p_load(broom) # Broom is a package which produces neat tables of results
-
-tidy(mod) # This is a broom function which tidies up the statistical results for reporting
 
 ```
+```{r national anthems}
 
+df.anthems <- read_csv("anthems.csv")
 
-Now, let's have a look at the `structure` of this model. There are two ways to do this:
+contains.happy <- function(x){
+  return(str_detect(x, "happ"))
+}
 
-1. Use the `str` function, e.g. `str(mod)`
-2. Type `mod$`, and then use autocomplete.
+df.2019 %>%
+  merge(df.anthems, by.x = "Country or region", by.y = "Country") %>% 
+  mutate(contains.happy = as.numeric(contains.happy(Anthem))) %>% 
+  summary(lm(Score ~ contains.happy, data = .))
+  
 
-We can see that the `$` symbol has a dual function in R: firstly, to specify variables within dataframes, and secondly to specify subcomponents of an object.
+mod <- lm(Score ~ contains.happy,
+                          df.2019 %>%
+                            merge(df.anthems, by.x = "Country or region", by.y = "Country") %>% 
+                            mutate(contains.happy = as.numeric(contains.happy(Anthem)))
+)
 
-It is useful to be able to refer to subcomponents of an object so that we can integrate into our report, e.g. the regression yielded a value of `r summary(mod)$r.squared`
-
-## EX 6: Let's put it all together!!!
-
-(1) Download the data for [life expectancy by country](WHO_life_expectancy.csv)
-(2) The data covers many years. Select the most recent year.
-(3) Merge the data with the "WHR" data (you will need to merge using the "country" variable)
-(4) Draw plots of (a) life expectancy against GDP per capita, (b) life expectancy against family values
-
-Once you get stuck have a look at the first code chunk below. This contains the solution but with pesky errors added! See if you can sort out the errors.
-
-```{r with errors, eval = FALSE, message = FALSE, error=TRUE}
-
-whr <- read_csv("WHR_2017.csv")
-
-le <- read_csv("WHO_life_expectancy.csv")
-
-whr %>% # NB we need to ensure that the "country" variable has exactly the same name in both datasets
-  rename(country = Country) ->
-  whr
-
-le %>% 
-  filter(Year == 2015) %>% 
-  merge(whr) %>% 
-  df
-
-plot(df$`Life expectancy`, df$GDP)
-plot(df$`Life expectancy`, df$family)
-
-
-
+summary(mod)
 
 ```
-
-The code in this chunk shows the solution!
-
-```{r Correct!, message = FALSE}
-
-whr <- read_csv("WHR_2017.csv")
-
-le <- read_csv("WHO_life_expectancy.csv")
-
-whr %>% 
-  rename(Country = country) ->
-  whr
-
-le %>% 
-  filter(Year == 2015) %>% 
-  merge(whr) ->
-  df
-
-plot(df$`Life expectancy`, df$GDP)
-plot(df$`Life expectancy`, df$family)
-
-
-
-
-```
-
-
-
 
