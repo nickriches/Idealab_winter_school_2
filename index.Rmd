@@ -1,20 +1,13 @@
 ---
-title: "Session 1 - Introduction.Rmd"
-output:
-  html_document:
-    df_print: paged
-    toc: yes
-    toc_depth: '2'
-  word_document:
-    toc: yes
-    toc_depth: '2'
-  html_notebook:
-    df_print: paged
+name: "Idealab Winter School - Part 2"
+title: "Idealab Winter School - Part 2"
+author: "Nick Riches"  
+output:  
+  html_document:  
     number_sections: yes
     toc: yes
-    toc_depth: 2
     toc_float:
-      collapsed: no
+      collapsed: yes
 ---
 
 
@@ -45,7 +38,7 @@ df.2019 <- read_csv("WHR_2019.csv") # Read from a .csv file
 
 We're going to *subset* the WHR dataset (i.e. choose only those cases/observations which fulfil a specific criterion). To do this we're going to use the `which()` function. When you apply `which` to a variable in a dataset, it will produce indices (indexes) of the rows which fulfil a certain criterio, e.g. `which(df$var_name == 2)` will give you the indices of all rows where the value of the variable is 2.
 
-## EX4: Subsetting the hard way!
+## Subsetting the hard way!
 
 Armed with this knowledge, your task is to subset the data frame so that it only contains information from African countries.
 
@@ -163,7 +156,7 @@ for(i in 1:10){
 ```
 
 
-## EX5: Loops
+## Loops
 
 The code below creates a sequence ranging from 0 to 30 going up in steps of 0.25. Try to achieve the same result using a loop
 
