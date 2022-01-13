@@ -15,7 +15,9 @@ output:
 
 The main data set we are looking at is the World Happiness Report (2017 & 2019), by country. The files are [WHR_2019.xlsx](WHR_2019.xlsx), [WHR_2017.xlsx](WHR_2017.xlsx), [WHR_2019.csv](WHR_2019.csv), [WHR_2017.csv](WHR_2017.csv).
 
-The "anthems" dataset is [here](anthems.csv)
+The "anthems" dataset is [here](anthems.csv).
+
+The .Rmd file is [here](index.Rmd)
 
 
 ```{r Read in data, message = FALSE}
